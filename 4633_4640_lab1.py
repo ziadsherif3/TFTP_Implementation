@@ -61,12 +61,12 @@ class TftpProcessor(object):
         """
         # add the packet to be sent to self.packet_buffer
 
-        #packet_data and packet_source will be output of
-        #socket.recvfrom()
+        # packet_data and packet_source will be output of
+        # socket.recvfrom()
 
         print(f"Received a packet from {packet_source}")
 
-        in_packet = self._parse_udp_packet(packet_data) #Checks if RRQ or WRQ
+        in_packet = self._parse_udp_packet(packet_data) # Checks for type of packet
 
         out_packet = self._do_some_logic(in_packet)
 
@@ -79,17 +79,11 @@ class TftpProcessor(object):
         the type of the packet and extract other available
         information.
         """
-
-        """
-           2 bytes    string   1 byte     string   1 byte
-               -----------------------------------------------
-        RRQ/  | 01/02 |  Filename  |   0  |    Mode    |   0  |
-        WRQ    -----------------------------------------------
-        """
+        
         # Extract the first 2 bytes from packet
         opcode = struct.unpack("!H",packet_bytes[0:2])
 
-        #Extract file name
+        # Extract file name
 
         # Note : i'm not sure yet if i have to use unpack here
         # and in mode
@@ -97,7 +91,7 @@ class TftpProcessor(object):
 
         fname = ""
         for x in range(2,len(packet_bytes)):
-            if packet_bytes[x] == 0: #if reached termination char
+            if packet_bytes[x] == 0: # if reached termination char
                 break
             else:
                 fname += packet_bytes[x]
@@ -105,7 +99,7 @@ class TftpProcessor(object):
         '''Should i use this after the loop?'''
         #file_name = struct.unpack("!%ds"%len(fname),fname)
 
-        #Extract mode
+        # Extract mode
         mode = packet_bytes[x+1 : len(packet_bytes)-1]
         
         #mode_ = struct.unpack("!%ds"%len(mode), mode)
@@ -159,7 +153,7 @@ def check_file_name():
         print(f"[WARN] File name is invalid [{script_name}]")
     pass
 
-#DONE
+# DONE
 def setup_sockets(address):
     """
     Socket logic MUST NOT be written in the TftpProcessor
@@ -168,8 +162,8 @@ def setup_sockets(address):
     Feel free to delete this function.
     """
     # don't forget, the server's port is 69
-    sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM) #Creating UDP socket
-    sock.bind((address,69)) #Associate socket with a port to receive mesasages
+    sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM) # Creating UDP socket
+    sock.bind((address,69)) # Associate socket with a port to receive mesasages
     print(f"TFTP server started on on [{address}]...")
     return sock
 
@@ -217,13 +211,13 @@ def main():
     ip_address = get_arg(1, "127.0.0.1")
     sock = setup_sockets(ip_address)
 
-    #Socket Logic
+    # Socket Logic
     while True:
         print("Waiting to receive data...")
-        data , addr = sock.recvfrom(2048)
+        data , addr = sock.recvfrom(4096)
         input_packet = TftpProcessor()
 
-        input_packet.process_udp_packet(data,addr) #This Should do a lot of stuff :)
+        input_packet.process_udp_packet(data,addr) # This Should do a lot of stuff :)
 
 
 if __name__ == "__main__":
