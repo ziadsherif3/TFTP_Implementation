@@ -72,6 +72,7 @@ class TftpProcessor(object):
 
         # This shouldn't change.
         self.packet_buffer.append(out_packet)
+        
 
     def _parse_udp_packet(self, packet_bytes):
         """
@@ -124,7 +125,38 @@ class TftpProcessor(object):
         """
         Example of a private function that does some logic.
         """
-        pass
+        opcode = input_packet[0]
+        
+        if opcode == 1: # Client sent an RRQ
+            fname = input_packet[1]
+            try:
+                with open(fname, "rb") as f:
+                    data = f.read()
+                # Construct the output packet
+                data512 = b''
+                for i in range(len(data)):
+                    if i == 512:
+                        breakpoint
+                    data512 += data[i:i+1]
+                outopcode = 3
+                blockno = 1
+                out_packet = struct.pack("!HH%ds"%len(data), outopcode, blockno, data512)
+            except: # ERROR packet should be sent informing the client that an error with the file has occurred
+                outopcode = 5
+                errorcode = 1
+                errmsg = "File not found."
+                zero = 0
+                out_packet = struct.pack("!HH%dsc"%len(errmsg), outopcode, errorcode, errmsg, zero)
+        elif opcode == 2: # Client sent an WRQ
+            pass
+        elif opcode == 3: # Client sent DATA
+            pass
+        elif opcode == 4: # Client sent an ACK
+            pass
+        elif opcode == 5: # Client sent an ERROR
+            pass
+        
+        return out_packet
 
     def get_next_output_packet(self):
         """
@@ -213,14 +245,16 @@ def main():
     # The IP of the server.
     ip_address = get_arg(1, "127.0.0.1")
     sock = setup_sockets(ip_address)
+    tftp_proc = TftpProcessor()
 
     # Socket Logic
     while True:
         print("Waiting to receive data...")
         data , addr = sock.recvfrom(4096)
-        input_packet = TftpProcessor()
-
-        input_packet.process_udp_packet(data,addr) # This Should do a lot of stuff :)
+        tftp_proc.process_udp_packet(data,addr) # This Should do a lot of stuff :)
+        if tftp_proc.has_pending_packets_to_be_sent:
+            sock.sendto(tftp_proc.get_next_output_packet(), addr)
+        
 
 
 if __name__ == "__main__":
