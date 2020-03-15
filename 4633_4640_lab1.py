@@ -81,42 +81,45 @@ class TftpProcessor(object):
         """
         
         # Extract the first 2 bytes from packet
-        opcode = struct.unpack("!H",packet_bytes[0:2])
-
-        # Extract file name
-
-        # Note : i'm not sure yet if i have to use unpack here
-        # and in mode
-        # I think yes lol :D
-
-        fname = ""
-        for x in range(2,len(packet_bytes)):
-            if packet_bytes[x] == 0: # if reached termination char
-                break
-            else:
-                fname += packet_bytes[x]
-
-        '''Should i use this after the loop?'''
-        #file_name = struct.unpack("!%ds"%len(fname),fname)
-
-        # Extract mode
-        mode = packet_bytes[x+1 : len(packet_bytes)-1]
+        # Ziad to Anwar: (uid,), adv_packet = struct.unpack("!I", adv_packet[:4]), adv_packet[4:]
+        # This template updates packet as it unpacks; makes it easier to get file name in case of RRQ and WRQ
         
-        #mode_ = struct.unpack("!%ds"%len(mode), mode)
+        in_packet = [] # in_packet to return and do protocol logic on
+        (opcode,), packet_bytes = struct.unpack("!H",packet_bytes[:2]), packet_bytes[2:]
+        in_packet.append(opcode)
+        
+        if opcode == TftpProcessor.TftpPacketType.RRQ.value or opcode == TftpProcessor.TftpPacketType.WRQ.value: # Read Request == 1/Write Request == 2
+            # Extract file name
+                        
+            lfname = 0 # Length of file name
+            
+            for i in range(0,len(packet_bytes)):
+                if packet_bytes[i] == 0: # if reached termination char
+                    break
+                else:
+                    lfname += 1
+                    
+            fname, packet_bytes = packet_bytes[:lfname], packet_bytes[lfname + 1:]
+            in_packet.append(fname)
+            # Extract mode
+            
+            mode = packet_bytes[:len(packet_bytes) - 1]
+            in_packet.append(mode)
+        elif opcode == TftpProcessor.TftpPacketType.DATA.value: # DATA == 3
+            (blockno,), packet_bytes = struct.unpack("!H",packet_bytes[:2]), packet_bytes[2:]
+            in_packet.append(blockno)
+            in_packet.append(packet_bytes)            
 
+        elif opcode == TftpProcessor.TftpPacketType.ACK.value: # ACK == 4
+            blockno = struct.unpack("!H",packet_bytes[:2])
+            in_packet.append(blockno)
+        elif opcode == TftpProcessor.TftpPacketType.ERROR.value: # ERROR == 5
+            (errcode,), packet_bytes = struct.unpack("!H",packet_bytes[:2]), packet_bytes[2:]
+            in_packet.append(errcode)
+            in_packet.append(packet_bytes[:len(packet_bytes) - 1])
+            
+        return in_packet
 
-        if opcode == TftpProcessor.TftpPacketType.RRQ: #Read Request == 1
-            pass
-
-        elif opcode == TftpProcessor.TftpPacketType.WRQ: #Write Request == 2
-            pass
-
-        else :
-            print("Invalid Packet!")
-
-        pass
-
-#
     def _do_some_logic(self, input_packet):
         """
         Example of a private function that does some logic.
