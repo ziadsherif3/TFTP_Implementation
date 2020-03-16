@@ -199,7 +199,14 @@ class TftpProcessor(object):
             errorcode = input_packet[1]
             errmsg = input_packet[2]
             print(f'Error : {errmsg} , Code : {errorcode}')
-            #exit(-1) #Terminate code ?
+            return -1
+        else:
+            self.filename = ""
+            outopcode = 5
+            errorcode = 4
+            errmsg = "Illegal TFTP operation"
+            zero = 0
+            out_packet = struct.pack("!HH%dsB"%len(errmsg), outopcode, errorcode, errmsg, zero)
 
         return out_packet
 
