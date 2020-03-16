@@ -150,9 +150,6 @@ class TftpProcessor(object):
                 zero = 0
                 out_packet = struct.pack("!HH%dsB"%len(errmsg), outopcode, errorcode, errmsg, zero)
         elif opcode == 2: # Client sent an WRQ
-            fname = input_packet[1]
-            self.filename = fname
-
             #Send ACK
             blockno = 0
             outopcode = 4
