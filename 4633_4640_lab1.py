@@ -115,7 +115,7 @@ class TftpProcessor(object):
             in_packet.append(packet_bytes)            
 
         elif opcode == TftpProcessor.TftpPacketType.ACK.value: # ACK == 4
-            blockno = struct.unpack("!H",packet_bytes[:2])
+            (blockno,) = struct.unpack("!H",packet_bytes[:2])
             in_packet.append(blockno)
         elif opcode == TftpProcessor.TftpPacketType.ERROR.value: # ERROR == 5
             (errcode,), packet_bytes = struct.unpack("!H",packet_bytes[:2]), packet_bytes[2:]
