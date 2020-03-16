@@ -130,7 +130,6 @@ class TftpProcessor(object):
         
         if opcode == 1: # Client sent an RRQ
             fname = input_packet[1]
-            self.filename  = fname
             try:
                 with open(fname, "rb") as f:
                     data = f.read()
@@ -143,20 +142,33 @@ class TftpProcessor(object):
                 outopcode = 3
                 blockno = 1
                 out_packet = struct.pack("!HH%ds"%len(data), outopcode, blockno, data512)
+                self.filename  = fname
             except: # ERROR packet should be sent informing the client that an error with the file has occurred
                 outopcode = 5
                 errorcode = 1
-                errmsg = "File not found."
+                errmsg = "File not found"
                 zero = 0
                 out_packet = struct.pack("!HH%dsB"%len(errmsg), outopcode, errorcode, errmsg, zero)
         elif opcode == 2: # Client sent an WRQ
-            #Send ACK
-            blockno = 0
-            outopcode = 4
-            out_packet = struct.pack("!HH",outopcode,blockno)
+            fname = input_packet[1]
+            if os.path.exists(fname): # Send error packet because file already exists
+                outopcode = 5
+                errorcode = 6
+                errmsg = "File already exists"
+                zero = 0
+                out_packet = struct.pack("!HH%dsB"%len(errmsg), outopcode, errorcode, errmsg, zero)
+            else: # Create a new file and send ACK
+                self.filename  = fname
+                f= open(fname,"wb")
+                f.close()
+                outopcode = 4
+                blockno = 0
+                out_packet = struct.pack("!HH",outopcode,blockno)
         elif opcode == 3: # Client sent DATA
-            blockno = input_packet[1] #to send ACK
+            with open(self.filename, "ab") as f:
+                f.write(input_packet[2])
             outopcode = 4
+            blockno = input_packet[1] # To send ACK
             out_packet = struct.pack("!HH",outopcode,blockno)
         elif opcode == 4: # Client sent an ACK
             blockno = input_packet[1]
