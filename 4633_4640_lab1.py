@@ -304,7 +304,7 @@ def main():
         print("Waiting to receive data...")
         data , addr = sock.recvfrom(4096)
         tftp_proc.process_udp_packet(data,addr) # This Should do a lot of stuff :)
-        if tftp_proc.has_pending_packets_to_be_sent:
+        if tftp_proc.has_pending_packets_to_be_sent():
             sock.sendto(tftp_proc.get_next_output_packet(), addr)
         
 
