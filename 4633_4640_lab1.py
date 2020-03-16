@@ -157,15 +157,6 @@ class TftpProcessor(object):
             blockno = 0
             outopcode = 4
             out_packet = struct.pack("!HH",outopcode,blockno)
-            
-            '''Here i want to send ACK first then write bytes
-                and in both cases i need access to socket too :)
-            '''
-
-            #with open(fname,'wb') as f:
-                #Receive stuff first
-                #f.write(data[4,:])
-
         elif opcode == 3: # Client sent DATA
             blockno = input_packet[1] #to send ACK
             outopcode = 4
