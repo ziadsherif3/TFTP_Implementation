@@ -52,6 +52,7 @@ class TftpProcessor(object):
         """
         self.packet_buffer = []
         self.filename = ""
+        self.datalen = 0
         pass
 
     def process_udp_packet(self, packet_data, packet_source):
@@ -72,7 +73,8 @@ class TftpProcessor(object):
         out_packet = self._do_some_logic(in_packet)
 
         # This shouldn't change.
-        self.packet_buffer.append(out_packet)
+        if type(out_packet) == bytes:
+            self.packet_buffer.append(out_packet)
         
 
     def _parse_udp_packet(self, packet_bytes):
@@ -129,6 +131,8 @@ class TftpProcessor(object):
         opcode = input_packet[0]
         
         if opcode == 1: # Client sent an RRQ
+            self.filename = ""
+            self.datalen = 0
             fname = input_packet[1]
             try:
                 with open(fname, "rb") as f:
@@ -141,8 +145,9 @@ class TftpProcessor(object):
                     data512 += data[i:i+1]
                 outopcode = 3
                 blockno = 1
-                out_packet = struct.pack("!HH%ds"%len(data), outopcode, blockno, data512)
+                out_packet = struct.pack("!HH%ds"%len(data512), outopcode, blockno, data512)
                 self.filename  = fname
+                self.datalen = len(data512)
             except: # ERROR packet should be sent informing the client that an error with the file has occurred
                 outopcode = 5
                 errorcode = 1
@@ -150,6 +155,7 @@ class TftpProcessor(object):
                 zero = 0
                 out_packet = struct.pack("!HH%dsB"%len(errmsg), outopcode, errorcode, errmsg, zero)
         elif opcode == 2: # Client sent an WRQ
+            self.filename = ""
             fname = input_packet[1]
             if os.path.exists(fname): # Send error packet because file already exists
                 outopcode = 5
@@ -172,12 +178,23 @@ class TftpProcessor(object):
             out_packet = struct.pack("!HH",outopcode,blockno)
         elif opcode == 4: # Client sent an ACK
             blockno = input_packet[1]
+            if self.filename == "": # To handle the case when server sends error packet and client sends an ack with block no 1
+                return -1
+            if self.datalen < 512:
+                return -1
+            with open(self.filename,'rb') as f:
+                f.seek(blockno * 512)
+                data = f.read()
+            # Construct the output packet
+            data512 = b''
+            for i in range(len(data)):
+                if i == 512:
+                    break
+                data512 += data[i:i+1]
             outopcode = 3
-            with open(self.filename,'wb') as f:
-                pass
-            '''Here i need to receive from the socket the bytes that 
-            i want to write'''
-
+            blockno += 1
+            out_packet = struct.pack("!HH%ds"%len(data512), outopcode, blockno, data512)
+            self.datalen = len(data512)
         elif opcode == 5: # Client sent an ERROR
             errorcode = input_packet[1]
             errmsg = input_packet[2]
