@@ -51,6 +51,7 @@ class TftpProcessor(object):
         Here's an example of what you can do inside this function.
         """
         self.packet_buffer = []
+        self.filename = ""
         pass
 
     def process_udp_packet(self, packet_data, packet_source):
@@ -129,6 +130,7 @@ class TftpProcessor(object):
         
         if opcode == 1: # Client sent an RRQ
             fname = input_packet[1]
+            self.filename  = fname
             try:
                 with open(fname, "rb") as f:
                     data = f.read()
@@ -136,7 +138,7 @@ class TftpProcessor(object):
                 data512 = b''
                 for i in range(len(data)):
                     if i == 512:
-                        breakpoint
+                        break
                     data512 += data[i:i+1]
                 outopcode = 3
                 blockno = 1
@@ -146,16 +148,42 @@ class TftpProcessor(object):
                 errorcode = 1
                 errmsg = "File not found."
                 zero = 0
-                out_packet = struct.pack("!HH%dsc"%len(errmsg), outopcode, errorcode, errmsg, zero)
+                out_packet = struct.pack("!HH%dsB"%len(errmsg), outopcode, errorcode, errmsg, zero)
         elif opcode == 2: # Client sent an WRQ
-            pass
+            fname = input_packet[1]
+            self.filename = fname
+
+            #Send ACK
+            blockno = 0
+            outopcode = 4
+            out_packet = struct.pack("!HH",outopcode,blockno)
+            
+            '''Here i want to send ACK first then write bytes
+                and in both cases i need access to socket too :)
+            '''
+
+            #with open(fname,'wb') as f:
+                #Receive stuff first
+                #f.write(data[4,:])
+
         elif opcode == 3: # Client sent DATA
-            pass
+            blockno = input_packet[1] #to send ACK
+            outopcode = 4
+            out_packet = struct.pack("!HH",outopcode,blockno)
         elif opcode == 4: # Client sent an ACK
-            pass
+            blockno = input_packet[1]
+            outopcode = 3
+            with open(self.filename,'wb') as f:
+                pass
+            '''Here i need to receive from the socket the bytes that 
+            i want to write'''
+
         elif opcode == 5: # Client sent an ERROR
-            pass
-        
+            errorcode = input_packet[1]
+            errmsg = input_packet[2]
+            print(f'Error : {errmsg} , Code : {errorcode}')
+            #exit(-1) #Terminate code ?
+
         return out_packet
 
     def get_next_output_packet(self):
@@ -247,7 +275,7 @@ def main():
     sock = setup_sockets(ip_address)
     tftp_proc = TftpProcessor()
 
-    # Socket Logic
+    # Socket Logicb
     while True:
         print("Waiting to receive data...")
         data , addr = sock.recvfrom(4096)
