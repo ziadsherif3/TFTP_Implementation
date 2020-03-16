@@ -151,7 +151,7 @@ class TftpProcessor(object):
             except: # ERROR packet should be sent informing the client that an error with the file has occurred
                 outopcode = 5
                 errorcode = 1
-                errmsg = "File not found"
+                errmsg = b'File not found'
                 zero = 0
                 out_packet = struct.pack("!HH%dsB"%len(errmsg), outopcode, errorcode, errmsg, zero)
         elif opcode == 2: # Client sent an WRQ
@@ -160,7 +160,7 @@ class TftpProcessor(object):
             if os.path.exists(fname): # Send error packet because file already exists
                 outopcode = 5
                 errorcode = 6
-                errmsg = "File already exists"
+                errmsg = b'File already exists'
                 zero = 0
                 out_packet = struct.pack("!HH%dsB"%len(errmsg), outopcode, errorcode, errmsg, zero)
             else: # Create a new file and send ACK
@@ -204,7 +204,7 @@ class TftpProcessor(object):
             self.filename = ""
             outopcode = 5
             errorcode = 4
-            errmsg = "Illegal TFTP operation"
+            errmsg = b'Illegal TFTP operation'
             zero = 0
             out_packet = struct.pack("!HH%dsB"%len(errmsg), outopcode, errorcode, errmsg, zero)
 
